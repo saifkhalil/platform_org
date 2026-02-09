@@ -1,0 +1,105 @@
+{% extends "platform_org/base.html" %}
+{% block title %}Micro Enterprises{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Micro Enterprises</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a class="btn btn-sm btn-primary" href="{% url 'platform_org:micro_enterprise_create' %}">
+            <i class="bi bi-plus-lg me-1"></i>New ME
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form class="row g-3" method="get">
+            <div class="col-md-5">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Search code or name..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    {% for s in statuses %}
+                        <option value="{{ s.id }}" {% if request.GET.status == s.id|stringformat:"i" %}selected{% endif %}>
+                            {{ s.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="me_type" class="form-select form-select-sm">
+                    <option value="">All Types</option>
+                    {% for t in types %}
+                        <option value="{{ t.id }}" {% if request.GET.me_type == t.id|stringformat:"i" %}selected{% endif %}>
+                            {{ t.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button class="btn btn-sm btn-secondary w-100" type="submit">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Tenant</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for me in items %}
+                <tr>
+                    <td><span class="badge bg-light text-dark border">{{ me.code }}</span></td>
+                    <td class="fw-bold">
+                        <a href="{% url 'platform_org:micro_enterprise_detail' me.id %}" class="text-decoration-none text-dark">
+                            {{ me.name }}
+                        </a>
+                    </td>
+                    <td><small class="text-muted">{{ me.me_type.name|default:"-" }}</small></td>
+                    <td>
+                        {% if me.status.code == 'ACTIVE' %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">{{ me.status.name }}</span>
+                        {% elif me.status.code == 'INCUBATION' %}
+                        <span class="badge bg-info-subtle text-info border border-info-subtle">{{ me.status.name }}</span>
+                        {% else %}
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">{{ me.status.name|default:"-" }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ me.tenant.name }}</td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                            <a class="btn btn-outline-primary" href="{% url 'platform_org:micro_enterprise_edit' me.id %}" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a class="btn btn-outline-danger" href="{% url 'platform_org:micro_enterprise_delete' me.id %}" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">
+                        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                        No Micro Enterprises found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

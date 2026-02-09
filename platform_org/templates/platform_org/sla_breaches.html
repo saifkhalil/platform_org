@@ -1,0 +1,83 @@
+{% extends "platform_org/base.html" %}
+{% block title %}SLA Breaches{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2 text-danger">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>SLA Breaches
+    </h1>
+</div>
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <form class="row g-3" method="get">
+            <div class="col-md-7">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Search request title / external id..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="breach_type" class="form-select form-select-sm">
+                    <option value="">All Types</option>
+                    <option value="RESPONSE">Response Time</option>
+                    <option value="RESOLUTION">Resolution Time</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-sm btn-secondary w-100" type="submit">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-danger">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-danger text-danger">
+                <tr>
+                    <th>ID</th>
+                    <th>Type</th>
+                    <th>Tenant</th>
+                    <th>Request</th>
+                    <th>Contract</th>
+                    <th>Breach At</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in items %}
+                <tr>
+                    <td><small class="text-muted">{{ b.id }}</small></td>
+                    <td>
+                        <span class="badge {% if b.breach_type == 'RESPONSE' %}bg-warning{% else %}bg-danger{% endif %}">
+                            {{ b.get_breach_type_display }}
+                        </span>
+                    </td>
+                    <td>{{ b.tenant.name }}</td>
+                    <td class="fw-semibold">{{ b.request.title }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ b.request.contract.code }}</span></td>
+                    <td><small>{{ b.breach_at|date:"Y-m-d H:i" }}</small></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#details-{{ b.id }}">
+                            <i class="bi bi-info-circle"></i> View
+                        </button>
+                        <div class="collapse mt-2" id="details-{{ b.id }}">
+                            <div class="card card-body bg-light p-2">
+                                <pre class="small mb-0" style="white-space: pre-wrap">{{ b.details|safe }}</pre>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <i class="bi bi-check-circle fs-2 d-block mb-2 text-success"></i>
+                        No breaches recorded for this tenant. Good job!
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

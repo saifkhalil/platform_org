@@ -1,0 +1,182 @@
+{% extends "platform_org/base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Dashboard</h1>
+</div>
+
+{% if tenant %}
+<div class="alert alert-info d-flex align-items-center" role="alert">
+  <i class="bi bi-info-circle-fill me-2"></i>
+  <div>
+    <b>Tenant:</b> {{ tenant.name }} <span class="badge bg-secondary ms-1">{{ tenant.code }}</span>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-warning d-flex align-items-center" role="alert">
+  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+  <div>
+    <b>Tenant:</b> not detected. (Middleware will create/use "default" in DEBUG)
+  </div>
+</div>
+{% endif %}
+
+<div class="row row-cols-1 row-cols-md-3 g-4 mb-4">
+  <div class="col">
+    <div class="card h-100 border-start border-primary border-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-subtitle mb-2 text-muted">Micro Enterprises</h6>
+            <h2 class="card-title mb-0">{{ me_count }}</h2>
+          </div>
+          <div class="bg-primary bg-opacity-10 p-3 rounded">
+            <i class="bi bi-building text-primary fs-3"></i>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer bg-transparent border-0">
+        <a href="{% url 'platform_org:micro_enterprise_list' %}" class="btn btn-sm btn-link p-0 text-decoration-none">View all →</a>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card h-100 border-start border-dark border-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-subtitle mb-2 text-muted">Service Catalog</h6>
+            <h2 class="card-title mb-0">{{ service_count|default:0 }}</h2>
+          </div>
+          <div class="bg-dark bg-opacity-10 p-3 rounded">
+            <i class="bi bi-card-list text-dark fs-3"></i>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer bg-transparent border-0">
+        <a href="{% url 'platform_org:service_list' %}" class="btn btn-sm btn-link p-0 text-decoration-none text-dark">View all →</a>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card h-100 border-start border-success border-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-subtitle mb-2 text-muted">Contracts</h6>
+            <h2 class="card-title mb-0">{{ contract_count }}</h2>
+          </div>
+          <div class="bg-success bg-opacity-10 p-3 rounded">
+            <i class="bi bi-file-earmark-text text-success fs-3"></i>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer bg-transparent border-0">
+        <a href="{% url 'platform_org:contract_list' %}" class="btn btn-sm btn-link p-0 text-decoration-none text-success">View all →</a>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card h-100 border-start border-info border-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-subtitle mb-2 text-muted">VAM Agreements</h6>
+            <h2 class="card-title mb-0">{{ vam_count }}</h2>
+          </div>
+          <div class="bg-info bg-opacity-10 p-3 rounded">
+            <i class="bi bi-cash-coin text-info fs-3"></i>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer bg-transparent border-0">
+        <a href="{% url 'platform_org:vam_list' %}" class="btn btn-sm btn-link p-0 text-decoration-none text-info">View all →</a>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card h-100 border-start border-warning border-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-subtitle mb-2 text-muted">KPIs</h6>
+            <h2 class="card-title mb-0">{{ kpi_count }}</h2>
+          </div>
+          <div class="bg-warning bg-opacity-10 p-3 rounded">
+            <i class="bi bi-graph-up text-warning fs-3"></i>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer bg-transparent border-0">
+        <a href="{% url 'platform_org:kpi_list' %}" class="btn btn-sm btn-link p-0 text-decoration-none text-warning">View all →</a>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card h-100 border-start border-secondary border-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-subtitle mb-2 text-muted">Service Requests</h6>
+            <h2 class="card-title mb-0">{{ request_count }}</h2>
+          </div>
+          <div class="bg-secondary bg-opacity-10 p-3 rounded">
+            <i class="bi bi-ticket-perforated text-secondary fs-3"></i>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer bg-transparent border-0">
+        <a href="{% url 'platform_org:service_request_list' %}" class="btn btn-sm btn-link p-0 text-decoration-none text-secondary">View all →</a>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card h-100 border-start border-danger border-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-subtitle mb-2 text-muted">SLA Breaches</h6>
+            <h2 class="card-title mb-0 text-danger">{{ breach_count }}</h2>
+          </div>
+          <div class="bg-danger bg-opacity-10 p-3 rounded">
+            <i class="bi bi-exclamation-triangle text-danger fs-3"></i>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer bg-transparent border-0">
+        <a href="{% url 'platform_org:sla_breaches' %}" class="btn btn-sm btn-link p-0 text-decoration-none text-danger">View all →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header bg-white">
+    <h5 class="card-title mb-0"><i class="bi bi-plus-circle me-2"></i>Quick Actions</h5>
+  </div>
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-primary" href="{% url 'platform_org:micro_enterprise_create' %}">
+        <i class="bi bi-building-plus me-1"></i>New ME
+      </a>
+      <a class="btn btn-outline-dark" href="{% url 'platform_org:service_create' %}">
+        <i class="bi bi-plus-square me-1"></i>New Service
+      </a>
+      <a class="btn btn-outline-success" href="{% url 'platform_org:contract_create' %}">
+        <i class="bi bi-file-earmark-plus me-1"></i>New Contract
+      </a>
+      <a class="btn btn-outline-info" href="{% url 'platform_org:vam_create' %}">
+        <i class="bi bi-cash me-1"></i>New VAM
+      </a>
+      <a class="btn btn-outline-warning" href="{% url 'platform_org:kpi_create' %}">
+        <i class="bi bi-graph-up-arrow me-1"></i>New KPI
+      </a>
+      <a class="btn btn-outline-secondary" href="{% url 'platform_org:service_request_create' %}">
+        <i class="bi bi-ticket-plus me-1"></i>New Request
+      </a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

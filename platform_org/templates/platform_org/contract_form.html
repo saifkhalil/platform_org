@@ -1,0 +1,344 @@
+{% extends "platform_org/base.html" %}
+{% load form_tags %}
+{% block title %}Contract Form{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h4 class="card-title mb-0">
+                    <i class="bi bi-file-earmark-plus me-2"></i>{% if object %}Edit{% else %}New{% endif %} Contract
+                </h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" id="contract-form" class="needs-validation" novalidate>
+                    {% csrf_token %}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Contract Code</label>
+                            <input type="text" name="code" class="form-control {% if form.code.errors %}is-invalid{% endif %}" id="id_code" value="{{ form.code.value|default:'' }}" required>
+                            {% if form.code.errors %}
+                                <div class="invalid-feedback d-block">{{ form.code.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Status</label>
+                            <select name="status" class="form-select {% if form.status.errors %}is-invalid{% endif %}" id="id_status">
+                                {% for choice in form.fields.status.queryset %}
+                                    <option value="{{ choice.pk }}" {% if form.status.value == choice.pk %}selected{% endif %}>{{ choice.name }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if form.status.errors %}
+                                <div class="invalid-feedback d-block">{{ form.status.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Provider ME</label>
+                            <select name="provider_me" class="form-select {% if form.provider_me.errors %}is-invalid{% endif %}" id="id_provider_me">
+                                {% for choice in form.fields.provider_me.queryset %}
+                                    <option value="{{ choice.pk }}" {% if form.provider_me.value == choice.pk %}selected{% endif %}>{{ choice.name }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if form.provider_me.errors %}
+                                <div class="invalid-feedback d-block">{{ form.provider_me.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Consumer ME</label>
+                            <select name="consumer_me" class="form-select {% if form.consumer_me.errors %}is-invalid{% endif %}" id="id_consumer_me">
+                                {% for choice in form.fields.consumer_me.queryset %}
+                                    <option value="{{ choice.pk }}" {% if form.consumer_me.value == choice.pk %}selected{% endif %}>{{ choice.name }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if form.consumer_me.errors %}
+                                <div class="invalid-feedback d-block">{{ form.consumer_me.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Start Date</label>
+                            <input type="date" name="start_date" class="form-control {% if form.start_date.errors %}is-invalid{% endif %}" id="id_start_date" value="{{ form.start_date.value|date:'Y-m-d'|default:'' }}">
+                            {% if form.start_date.errors %}
+                                <div class="invalid-feedback d-block">{{ form.start_date.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">End Date</label>
+                            <input type="date" name="end_date" class="form-control {% if form.end_date.errors %}is-invalid{% endif %}" id="id_end_date" value="{{ form.end_date.value|date:'Y-m-d'|default:'' }}">
+                            {% if form.end_date.errors %}
+                                <div class="invalid-feedback d-block">{{ form.end_date.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-4 mb-3">
+                        <h5 class="border-bottom pb-2">Select Services</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle" id="services-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 40px;">Select</th>
+                                        <th>Service Name</th>
+                                        <th>Quantity</th>
+                                        <th>SLA Template</th>
+                                        <th class="text-end">Base Cost</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="services-body">
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-3">
+                                            Please select a Provider ME first.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-light fw-bold">
+                                        <td colspan="3" class="text-end">Total Contract Value:</td>
+                                        <td class="text-end" id="total-value-display">$0.00</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 d-none">
+                        <!-- Hidden but present for form compatibility if needed -->
+                        {{ form.contract_value }}
+                        {{ form.sla_template }}
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a class="btn btn-light px-4" href="{% url 'platform_org:contract_list' %}">Cancel</a>
+                        <button class="btn btn-primary px-4" type="submit">
+                            <i class="bi bi-check-lg me-1"></i>Save Contract
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const providerSelect = document.getElementById('id_provider_me');
+    const servicesBody = document.getElementById('services-body');
+    const totalDisplay = document.getElementById('total-value-display');
+    const form = document.getElementById('contract-form');
+
+    // Initial load if editing
+    if (providerSelect.value) {
+        loadServices(providerSelect.value);
+    }
+
+    providerSelect.addEventListener('change', function() {
+        loadServices(this.value);
+    });
+
+    function loadServices(providerId) {
+        if (!providerId) {
+            servicesBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Please select a Provider ME first.</td></tr>';
+            updateTotal();
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('provider_id', providerId);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        fetch(window.location.href, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            renderServices(data.services, data.sla_templates);
+        });
+    }
+
+    let currentServices = [];
+
+    function renderServices(services, slaTemplates) {
+        currentServices = services;
+        if (services.length === 0) {
+            servicesBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No services found for this provider.</td></tr>';
+            updateTotal();
+            return;
+        }
+
+        // Keep track of currently selected services if editing
+        const currentSelected = Array.from(document.querySelectorAll('input[name="selected_services"]:checked')).map(i => i.value);
+        const currentSlas = {};
+        document.querySelectorAll('select[name^="sla_"]').forEach(s => {
+            currentSlas[s.name.replace('sla_', '')] = s.value;
+        });
+
+        // Pre-fill from existing data if editing and it's the first load
+        let existingIds = [];
+        let existingSlas = {};
+        let existingBilling = {};
+        {% if current_services %}
+            existingIds = [{% for cs in current_services %}"{{ cs.service_id }}",{% endfor %}];
+            existingSlas = {
+                {% for cs in current_services %}"{{ cs.service_id }}": "{{ cs.sla_template_id|default:'' }}",{% endfor %}
+            };
+            existingBilling = {
+                {% for cs in current_services %}
+                "{{ cs.service_id }}": {
+                    "qty": "{{ cs.quantity|default:'' }}"
+                },
+                {% endfor %}
+            };
+        {% endif %}
+
+        servicesBody.innerHTML = '';
+        
+        // Build hierarchy map
+        const serviceMap = {};
+        services.forEach(s => {
+            s.children = [];
+            serviceMap[s.id] = s;
+        });
+        
+        const roots = [];
+        services.forEach(s => {
+            if (s.parent_id && serviceMap[s.parent_id]) {
+                serviceMap[s.parent_id].children.push(s);
+            } else {
+                roots.push(s);
+            }
+        });
+
+        function renderRow(s, depth = 0) {
+            const isChecked = existingIds.includes(s.id.toString()) || currentSelected.includes(s.id.toString());
+            const row = document.createElement('tr');
+            if (depth > 0) {
+                row.classList.add('table-light');
+            }
+            
+            let slaOptions = '<option value="">--- Default ---</option>';
+            slaTemplates.forEach(t => {
+                const selected = (existingSlas[s.id] == t.id || s.sla_template_id == t.id) ? 'selected' : '';
+                slaOptions += `<option value="${t.id}" ${selected}>${t.name}</option>`;
+            });
+
+            const b = existingBilling[s.id] || { qty: '' };
+
+            row.innerHTML = `
+                <td>
+                    <input type="checkbox" name="selected_services" value="${s.id}" class="form-check-input service-check" ${isChecked ? 'checked' : ''} data-cost="${s.cost}" data-id="${s.id}">
+                </td>
+                <td style="padding-left: ${depth * 20 + 8}px;">
+                    ${s.name}
+                </td>
+                <td>
+                    <input type="number" name="quantity_${s.id}" class="form-control form-control-sm" placeholder="Quantity" value="${b.qty}">
+                    <input type="hidden" name="billing_type_${s.id}" value="QUANTITY">
+                </td>
+                <td>
+                    <select name="sla_${s.id}" class="form-select form-select-sm sla-select" data-service-id="${s.id}">
+                        ${slaOptions}
+                    </select>
+                </td>
+                <td class="text-end cost-display" id="cost-display-${s.id}">$${parseFloat(s.cost).toFixed(2)}</td>
+            `;
+            servicesBody.appendChild(row);
+            
+            s.children.forEach(child => renderRow(child, depth + 1));
+        }
+
+        roots.forEach(root => renderRow(root));
+
+        document.querySelectorAll('.sla-select').forEach(select => {
+            select.addEventListener('change', function() {
+                const serviceId = this.dataset.serviceId;
+                const service = currentServices.find(s => s.id.toString() === serviceId);
+                const costDisplay = document.getElementById(`cost-display-${serviceId}`);
+                const check = document.querySelector(`.service-check[value="${serviceId}"]`);
+                
+                let actualCost = parseFloat(service.cost);
+                if (this.value && service.sla_costs && service.sla_costs[this.value] !== undefined) {
+                    actualCost = service.sla_costs[this.value];
+                }
+                
+                costDisplay.innerText = '$' + actualCost.toFixed(2);
+                check.dataset.cost = actualCost;
+                updateTotal();
+            });
+            // Trigger initial cost update if editing
+            select.dispatchEvent(new Event('change'));
+        });
+
+        document.querySelectorAll('.service-check').forEach(check => {
+            check.addEventListener('change', function() {
+                const serviceId = this.value;
+                const isChecked = this.checked;
+                
+                // Select/Deselect all children
+                const children = services.filter(s => s.parent_id == serviceId);
+                children.forEach(child => {
+                    const childCheck = document.querySelector(`.service-check[value="${child.id}"]`);
+                    if (childCheck && childCheck.checked !== isChecked) {
+                        childCheck.checked = isChecked;
+                        // Trigger change for nested sub-services
+                        childCheck.dispatchEvent(new Event('change'));
+                    }
+                });
+                
+                updateTotal();
+            });
+        });
+        updateTotal();
+    }
+
+    function updateTotal() {
+        let total = 0;
+        const selectedChecks = Array.from(document.querySelectorAll('.service-check:checked'));
+        const selectedIds = selectedChecks.map(c => c.value);
+        
+        // Filter out children whose parent is also selected and the parent has a cost > 0
+        const effectiveChecks = selectedChecks.filter(check => {
+            const serviceId = check.value;
+            const service = currentServices.find(s => s.id.toString() === serviceId);
+            if (service && service.parent_id) {
+                const parentId = service.parent_id.toString();
+                if (selectedIds.includes(parentId)) {
+                    const parentService = currentServices.find(s => s.id.toString() === parentId);
+                    if (parentService && parseFloat(parentService.cost) > 0) {
+                        return false; // Skip this child cost
+                    }
+                }
+            }
+            return true;
+        });
+
+        effectiveChecks.forEach(check => {
+            const row = check.closest('tr');
+            const cost = parseFloat(check.dataset.cost);
+            const qtyInput = row.querySelector('input[name^="quantity_"]');
+            const qty = parseFloat(qtyInput.value) || 0;
+            const itemTotal = cost * qty;
+            total += itemTotal;
+        });
+        totalDisplay.innerText = '$' + total.toFixed(2);
+    }
+
+    // Add listener for quantity changes to update total
+    servicesBody.addEventListener('input', function(e) {
+        if (e.target.name && e.target.name.startsWith('quantity_')) {
+            updateTotal();
+        }
+    });
+});
+</script>
+{% endblock %}

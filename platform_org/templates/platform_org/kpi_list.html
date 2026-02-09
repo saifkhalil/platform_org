@@ -1,0 +1,92 @@
+{% extends "platform_org/base.html" %}
+{% load form_tags %}
+{% block title %}KPIs{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">ME KPIs</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a class="btn btn-sm btn-primary" href="{% url 'platform_org:kpi_create' %}">
+            <i class="bi bi-plus-lg me-1"></i>New KPI
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <form class="row g-3" method="get">
+            <div class="col-md-7">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Search code, name, or ME..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <input type="text" name="me" class="form-control form-control-sm" placeholder="ME ID..." value="{{ request.GET.me }}">
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-sm btn-secondary w-100" type="submit">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Code</th>
+                    <th>Micro Enterprise</th>
+                    <th>KPI Name</th>
+                    <th class="text-center">Target</th>
+                    <th class="text-center">Actual</th>
+                    <th class="text-center">Performance</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for k in items %}
+                <tr>
+                    <td><span class="badge bg-light text-dark border">{{ k.code }}</span></td>
+                    <td class="fw-semibold">{{ k.me.name }}</td>
+                    <td>{{ k.name }}</td>
+                    <td class="text-center fw-bold text-primary">{{ k.target_value|default:"-" }}</td>
+                    <td class="text-center fw-bold">{{ k.actual_value|default:"-" }}</td>
+                    <td class="text-center" style="width: 150px;">
+                        {% if k.target_value and k.actual_value %}
+                            {% with performance=k.actual_value|divide:k.target_value|multiply:100 %}
+                            <div class="progress" style="height: 10px;" title="{{ performance|floatformat:1 }}%">
+                                <div class="progress-bar {% if performance >= 100 %}bg-success{% elif performance >= 80 %}bg-info{% else %}bg-warning{% endif %}" 
+                                     role="progressbar" style="width: {{ performance }}%" 
+                                     aria-valuenow="{{ performance }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted" style="font-size: 0.7rem;">{{ performance|floatformat:1 }}%</small>
+                            {% endwith %}
+                        {% else %}
+                            <span class="text-muted small">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                            <a class="btn btn-outline-primary" href="{% url 'platform_org:kpi_edit' k.id %}" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a class="btn btn-outline-danger" href="{% url 'platform_org:kpi_delete' k.id %}" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <i class="bi bi-graph-up-arrow fs-2 d-block mb-2"></i>
+                        No KPIs found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

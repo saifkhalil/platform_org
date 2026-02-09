@@ -1,0 +1,109 @@
+{% extends "platform_org/base.html" %}
+{% block title %}Service Catalog{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Service Catalog</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a class="btn btn-sm btn-outline-secondary me-2" href="{% url 'platform_org:service_list' %}">
+            <i class="bi bi-arrow-clockwise"></i> Clear Filters
+        </a>
+        <a class="btn btn-sm btn-primary" href="{% url 'platform_org:service_create' %}">
+            <i class="bi bi-plus-lg me-1"></i>New Service
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <form class="row g-3" method="get">
+            <div class="col-md-7">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Search service name or description..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="provider" class="form-select form-select-sm">
+                    <option value="">All Providers</option>
+                    {% for me in mes %}
+                        <option value="{{ me.id }}" {% if request.GET.provider == me.id|slugify %}selected{% endif %}>
+                            {{ me.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-sm btn-secondary w-100" type="submit">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Service Name (Hierarchy)</th>
+                    <th>Provider ME</th>
+                    <th>Cost</th>
+                    <th>SLA Template</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in items %}
+                    {% include "platform_org/service_list_row.html" with s=s depth=0 %}
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        <i class="bi bi-card-list fs-2 d-block mb-2"></i>
+                        No services found in catalog.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleButtons = document.querySelectorAll('.toggle-subservices');
+    
+    toggleButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const parentId = this.getAttribute('data-id');
+            const icon = this.querySelector('i');
+            const childRows = document.querySelectorAll(`.child-of-${parentId}`);
+            
+            const isExpanding = icon.classList.contains('bi-plus-square');
+            
+            if (isExpanding) {
+                icon.classList.replace('bi-plus-square', 'bi-dash-square');
+                childRows.forEach(row => {
+                    row.classList.remove('d-none');
+                });
+            } else {
+                icon.classList.replace('bi-dash-square', 'bi-plus-square');
+                collapseRecursive(parentId);
+            }
+        });
+    });
+
+    function collapseRecursive(parentId) {
+        const childRows = document.querySelectorAll(`.child-of-${parentId}`);
+        childRows.forEach(row => {
+            row.classList.add('d-none');
+            const rowId = row.getAttribute('data-id');
+            const rowToggleButton = row.querySelector('.toggle-subservices');
+            if (rowToggleButton) {
+                const icon = rowToggleButton.querySelector('i');
+                icon.classList.replace('bi-dash-square', 'bi-plus-square');
+            }
+            collapseRecursive(rowId);
+        });
+    }
+});
+</script>
+{% endblock %}

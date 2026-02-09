@@ -1,0 +1,82 @@
+{% extends "platform_org/base.html" %}
+{% block title %}VAM Agreements{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">VAM Agreements</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a class="btn btn-sm btn-primary" href="{% url 'platform_org:vam_create' %}">
+            <i class="bi bi-plus-lg me-1"></i>New VAM
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <form class="row g-3" method="get">
+            <div class="col-md-7">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Search code / ME..." value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <input type="text" name="me" class="form-control form-control-sm" placeholder="ME ID..." value="{{ request.GET.me }}">
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-sm btn-secondary w-100" type="submit">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Code</th>
+                    <th>Micro Enterprise</th>
+                    <th>Total Committed</th>
+                    <th>Autonomy Level</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in items %}
+                <tr>
+                    <td><span class="badge bg-light text-dark border">{{ v.code }}</span></td>
+                    <td class="fw-semibold">{{ v.me.name }}</td>
+                    <td class="fw-bold text-success">${{ v.total_committed_amount|floatformat:2 }}</td>
+                    <td>
+                        {% if v.me.autonomy_level == 'HIGH' %}
+                        <span class="badge bg-success text-white">High</span>
+                        {% elif v.me.autonomy_level == 'MEDIUM' %}
+                        <span class="badge bg-info text-white">Medium</span>
+                        {% else %}
+                        <span class="badge bg-secondary text-white">{{ v.me.autonomy_level }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                            <a class="btn btn-outline-primary" href="{% url 'platform_org:vam_edit' v.id %}" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a class="btn btn-outline-danger" href="{% url 'platform_org:vam_delete' v.id %}" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        <i class="bi bi-cash fs-2 d-block mb-2"></i>
+                        No VAM agreements found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+<tr class="service-row {% if depth > 0 %}child-of-{{ s.parent_id }} d-none{% endif %} {% if depth == 0 %}bg-white{% elif depth == 1 %}bg-light{% elif depth == 2 %}bg-info-subtle{% elif depth == 3 %}bg-warning-subtle{% else %}bg-secondary-subtle{% endif %}" data-id="{{ s.id }}" data-parent="{{ s.parent_id|default:'' }}" style="{% if depth > 0 %}border-left: {{ depth|add:depth }}px solid {% if depth == 1 %}#6c757d{% elif depth == 2 %}#0dcaf0{% elif depth == 3 %}#ffc107{% else %}#6c757d{% endif %};{% endif %}">
+    <td style="padding-left: {{ depth|add:depth|add:depth|add:depth|add:8 }}px;">
+        <div class="d-flex align-items-center">
+            {% if s.sub_services.exists %}
+                <button class="btn btn-sm btn-link text-decoration-none p-0 me-2 toggle-subservices" data-id="{{ s.id }}">
+                    <i class="bi bi-plus-square"></i>
+                </button>
+            {% elif depth > 0 %}
+                <span class="me-4"></span>
+            {% else %}
+                <span class="me-4"></span>
+            {% endif %}
+            <div>
+                <div class="fw-bold">
+                    <a href="{% url 'platform_org:service_detail' s.id %}" class="text-decoration-none text-dark">
+                        {{ s.name }}
+                    </a>
+                </div>
+                {% if s.description %}
+                    <div class="small text-muted text-truncate" style="max-width: 300px;">{{ s.description }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </td>
+    <td>{{ s.provider_me.name }}</td>
+    <td class="fw-semibold text-success">${{ s.cost|floatformat:2 }}</td>
+    <td>
+        {% if s.sla_template %}
+            <span class="badge bg-info-subtle text-info border border-info-subtle">{{ s.sla_template.name }}</span>
+        {% else %}
+            <span class="text-muted small">None</span>
+        {% endif %}
+    </td>
+    <td class="text-end">
+        <div class="btn-group btn-group-sm">
+            <a class="btn btn-outline-success" href="{% url 'platform_org:service_create' %}?parent={{ s.id }}&provider_me={{ s.provider_me.id }}" title="Add Sub-service">
+                <i class="bi bi-plus-circle"></i>
+            </a>
+            <a class="btn btn-outline-primary" href="{% url 'platform_org:service_edit' s.id %}" title="Edit">
+                <i class="bi bi-pencil"></i>
+            </a>
+            <a class="btn btn-outline-danger" href="{% url 'platform_org:service_delete' s.id %}" title="Delete">
+                <i class="bi bi-trash"></i>
+            </a>
+        </div>
+    </td>
+</tr>
+{% for sub in s.sub_services.all %}
+    {% include "platform_org/service_list_row.html" with s=sub depth=depth|add:1 %}
+{% endfor %}
