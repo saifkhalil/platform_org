@@ -1,0 +1,24 @@
+image:
+  api: your-registry/platform-org-api:latest
+  web: your-registry/platform-org-web:latest
+
+replicaCount:
+  api: 2
+  worker: 1
+
+ingress:
+  enabled: true
+  className: traefik
+  apiHost: api.example.com
+  webHost: app.example.com
+  tls: true
+
+
+secrets:
+  djangoSecretKey: "change-me"
+  databaseUrl: "postgresql://user:pass@host:5432/db"
+  redisUrl: "redis://host:6379/0"
+  entraTenantId: ""
+  entraClientId: ""
+  entraAllowedIssuer: ""
+  teamsWebhookUrl: ""

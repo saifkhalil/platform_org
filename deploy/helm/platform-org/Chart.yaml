@@ -1,0 +1,6 @@
+apiVersion: v2
+name: platform-org
+description: Platform Org (Django + React) with Traefik
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

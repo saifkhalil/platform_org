@@ -1,0 +1,15 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: platform-org
+  namespace: platform-org
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`{{ .Values.ingress.apiHost }}`)
+      kind: Rule
+      services:
+        - name: platform-org-api
+          port: 8000
+  tls: {}

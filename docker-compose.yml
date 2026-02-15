@@ -1,0 +1,56 @@
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: docker/Dockerfile
+    env_file: ./backend/.env
+    command: >
+      bash -lc "
+      uv run python manage.py migrate --noinput &&
+      uv run python manage.py collectstatic --noinput &&
+      uv run gunicorn config.asgi:application -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 --workers 3 --timeout 120
+      "
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: docker/Dockerfile
+    env_file: ./backend/.env
+    command: uv run celery -A config.celery_app worker -l INFO
+    depends_on:
+      - db
+      - redis
+
+  beat:
+    build:
+      context: ./backend
+      dockerfile: docker/Dockerfile
+    env_file: ./backend/.env
+    command: uv run celery -A config.celery_app beat -l INFO
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: platform_org
+      POSTGRES_USER: platform
+      POSTGRES_PASSWORD: platform
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:
