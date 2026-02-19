@@ -1,38 +1,39 @@
-# Platform Org Suite v2 (Django + React Fluent UI)
+# Platform Org Suite (Django 5)
 
-Includes:
-- Backend: Django 5 + DRF + JWT, row-level RBAC, audit log, seed command, integration stubs, health endpoint
-- Frontend: React (Vite) + Fluent UI with routing, login page, protected routes, list pages (ME, Contracts, VAM, SLA, KPI), audit page placeholder
-- Docker: Postgres + Redis + Celery (worker/beat) + API + Frontend
+Platform Org is a tenant-aware operating platform for micro-enterprise contract management, SLA monitoring, VAM tracking, and KPI governance.
 
-## Run (Docker)
+## Stack
+- Django 5 + DRF
+- PostgreSQL
+- Redis
+- Celery (worker + beat)
+- Entra ID token validation
+- Bootstrap template UI + REST API
+
+## Key Features
+- Tenant isolation via `request.tenant` middleware (subdomain, `X-Tenant`, Entra claims, user membership fallback).
+- Tenant-scoped domain entities (MEs, contracts, SLA templates, service requests, breaches, VAM agreements, KPIs).
+- SLA breach monitoring task with Teams/email notification hooks.
+- Role-aware API and write-guarded template views.
+
+## Local Run
 ```bash
-cp backend/.env.example backend/.env
-docker compose up --build -d
-docker compose exec api python manage.py migrate
-docker compose exec api python manage.py seed_platform_org
-docker compose exec api python manage.py createsuperuser
+cp .env.example .env
+uv sync
+uv run python manage.py migrate
+uv run python manage.py runserver
 ```
-- UI: http://localhost:5173
-- API: http://localhost:8000/api/
-- Docs: http://localhost:8000/api/docs/
-- Health: http://localhost:8000/healthz
 
+## Docker Run
+```bash
+cp .env.example .env
+docker compose up --build -d
+docker compose exec api uv run python manage.py migrate
+docker compose exec api uv run python manage.py createsuperuser
+```
 
-## v4
-- Multi-tenancy via X-Tenant header
-- SLA monitoring engine (Celery Beat)
-- VAM autonomy scoring + tranche auto-release (baseline)
-- Entra ID (Azure AD) Bearer token authentication
-- K8s/Helm/Traefik blueprints
-
-
-## v5 (2026-01-15)
-- Strict Entra ID SSO validation (issuer/audience)
-- Tenant isolation from Entra claims (tid/groups) + dev X-Tenant fallback
-- SLA Breach alerts via Teams webhook + SLA breaches UI page
-- Helm chart: configmap/secret/HPA templates
-
-
-## Docker fix
-- Backend venv moved to /opt/venv to avoid being shadowed by volume mounts (fixes 'No module named uvicorn').
+## Endpoints
+- Dashboard: `http://localhost:8000/`
+- API root: `http://localhost:8000/api/`
+- API docs: `http://localhost:8000/api/docs/`
+- Health: `http://localhost:8000/healthz`

@@ -47,7 +47,7 @@ class ContractStatus(TimeStampedModel):
 
 class MicroEnterprise(TimeStampedModel):
     tenant = models.ForeignKey(Tenant, on_delete=models.PROTECT, related_name="micro_enterprises")
-    code = models.CharField(max_length=50, unique=True)
+    code = models.CharField(max_length=50)
     name = models.CharField(max_length=255)
     me_type = models.ForeignKey(MicroEnterpriseType, on_delete=models.PROTECT, null=True, blank=True, related_name="micro_enterprises")
     status = models.ForeignKey(MicroEnterpriseStatus, on_delete=models.PROTECT, null=True, blank=True, related_name="micro_enterprises")
@@ -56,6 +56,9 @@ class MicroEnterprise(TimeStampedModel):
     department = models.CharField(max_length=100, blank=True)
     cost_center = models.CharField(max_length=100, blank=True)
     owners = models.ManyToManyField(settings.AUTH_USER_MODEL, through="MEOwner", related_name="micro_enterprises")
+
+    class Meta:
+        unique_together = [("tenant", "code")]
 
     def __str__(self):
         return self.name
@@ -110,18 +113,21 @@ class ServiceSLACost(TimeStampedModel):
 
 class MEContract(TimeStampedModel):
     tenant = models.ForeignKey(Tenant, on_delete=models.PROTECT, related_name="me_contracts")
-    code = models.CharField(max_length=50, unique=True)
+    code = models.CharField(max_length=50)
     provider_me = models.ForeignKey(MicroEnterprise, on_delete=models.PROTECT, related_name="provided_contracts")
     consumer_me = models.ForeignKey(MicroEnterprise, on_delete=models.PROTECT, related_name="consumed_contracts")
     services = models.ManyToManyField(MEService, through="ContractService", related_name="contracts")
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
     contract_value = models.DecimalField(max_digits=18, decimal_places=2, default=0)
-    status = models.ForeignKey(ContractStatus, on_delete=models.PROTECT, null=True, blank=True, related_name="contracts")
+    status = models.CharField(max_length=50, default="DRAFT")
 
     # Kept for backward compatibility or as a primary SLA if needed, 
     # but the request implies per-service SLA.
     sla_template = models.ForeignKey(SLATemplate, on_delete=models.SET_NULL, null=True, blank=True, related_name="contracts")
+
+    class Meta:
+        unique_together = [("tenant", "code")]
 
     def __str__(self):
         return f"{self.code} ({self.provider_me.name} -> {self.consumer_me.name})"
@@ -145,17 +151,23 @@ class ContractService(TimeStampedModel):
 
 class VAMAgreement(TimeStampedModel):
     tenant = models.ForeignKey(Tenant, on_delete=models.PROTECT, related_name="vam_agreements")
-    code = models.CharField(max_length=50, unique=True)
+    code = models.CharField(max_length=50)
     me = models.ForeignKey(MicroEnterprise, on_delete=models.PROTECT, related_name="vam_agreements")
     total_committed_amount = models.DecimalField(max_digits=18, decimal_places=2, default=0)
 
+    class Meta:
+        unique_together = [("tenant", "code")]
+
 class MEKPI(TimeStampedModel):
     tenant = models.ForeignKey(Tenant, on_delete=models.PROTECT, related_name="me_kpis")
-    code = models.CharField(max_length=50, unique=True)
+    code = models.CharField(max_length=50)
     me = models.ForeignKey(MicroEnterprise, on_delete=models.PROTECT, related_name="kpis")
     name = models.CharField(max_length=255)
     target_value = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)
     actual_value = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        unique_together = [("tenant", "code")]
 
     def delete(self, *args, **kwargs):
         log_event(actor=None, action="DELETE", entity=self, summary=f"Deleted {self.__class__.__name__}")

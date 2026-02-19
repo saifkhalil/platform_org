@@ -25,7 +25,7 @@ class ServiceRequest(models.Model):
     opened_at = models.DateTimeField(default=timezone.now)
     first_response_at = models.DateTimeField(null=True, blank=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
+    status = models.CharField(max_length=50, default=Status.OPEN)
 
 class SLABreachEvent(models.Model):
     class BreachType(models.TextChoices):
