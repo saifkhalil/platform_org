@@ -21,7 +21,11 @@
                     <th>Status</th>
                     <th>Workflow</th>
                     <th>Value</th>
+<<<<<<< codex/design-and-implement-platform-org-system-533cfs
                     <th>Transition</th>
+=======
+                    <th>Workflow</th>
+>>>>>>> master
                     <th class="text-end">Actions</th>
                 </tr>
             </thead>
@@ -34,7 +38,10 @@
                     <td>{{ c.start_date|date:"Y-m-d" }}</td>
                     <td>{{ c.end_date|date:"Y-m-d"|default:"-" }}</td>
                     <td><span class="badge bg-light text-dark border">{{ c.status }}</span></td>
+<<<<<<< codex/design-and-implement-platform-org-system-533cfs
                     <td><span class="badge bg-info-subtle text-info border">{{ contract_workflow_name }}</span></td>
+=======
+>>>>>>> master
                     <td>${{ c.contract_value|floatformat:2 }}</td>
                     <td>
                         <form method="post" action="{% url 'platform_org:contract_transition' c.id %}" class="d-flex gap-1">
@@ -48,13 +55,20 @@
                         </form>
                     </td>
                     <td class="text-end">
+<<<<<<< codex/design-and-implement-platform-org-system-533cfs
                         <a class="btn btn-sm btn-outline-secondary" href="{% url 'platform_org:contract_detail' c.id %}">View</a>
+=======
+>>>>>>> master
                         <a class="btn btn-sm btn-outline-primary" href="{% url 'platform_org:contract_edit' c.id %}">Edit</a>
                         <a class="btn btn-sm btn-outline-danger" href="{% url 'platform_org:contract_delete' c.id %}">Delete</a>
                     </td>
                 </tr>
                 {% empty %}
+<<<<<<< codex/design-and-implement-platform-org-system-533cfs
                 <tr><td colspan="10" class="text-center py-5 text-muted">No contracts found.</td></tr>
+=======
+                <tr><td colspan="9" class="text-center py-5 text-muted">No contracts found.</td></tr>
+>>>>>>> master
                 {% endfor %}
             </tbody>
         </table>

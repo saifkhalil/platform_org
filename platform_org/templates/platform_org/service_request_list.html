@@ -21,8 +21,12 @@
                     <th>Priority</th>
                     <th>Workflow</th>
                     <th>Created At</th>
+<<<<<<< codex/design-and-implement-platform-org-system-533cfs
                     <th>Transition</th>
                     <th class="text-end">Actions</th>
+=======
+                    <th>Workflow</th><th class="text-end">Actions</th>
+>>>>>>> master
                 </tr>
             </thead>
             <tbody>
@@ -47,6 +51,21 @@
                             <button class="btn btn-sm btn-outline-secondary" type="submit">Apply</button>
                         </form>
                     </td>
+<<<<<<< codex/design-and-implement-platform-org-system-533cfs
+=======
+                    <td><small>{{ r.opened_at|date:"Y-m-d H:i" }}</small></td>
+                    <td>
+                        <form method="post" action="{% url 'platform_org:request_transition' r.id %}" class="d-flex gap-1">
+                            {% csrf_token %}
+                            <select name="target_state" class="form-select form-select-sm">
+                                {% for code,name in workflow_states %}
+                                <option value="{{ code }}" {% if r.status == code %}selected{% endif %}>{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button class="btn btn-sm btn-outline-secondary" type="submit">Apply</button>
+                        </form>
+                    </td>
+>>>>>>> master
                     <td class="text-end">
                         <a class="btn btn-sm btn-outline-secondary" href="{% url 'platform_org:service_request_detail' r.id %}">View</a>
                         <a class="btn btn-sm btn-outline-primary" href="{% url 'platform_org:service_request_edit' r.id %}">Edit</a>
@@ -54,7 +73,16 @@
                     </td>
                 </tr>
                 {% empty %}
+<<<<<<< codex/design-and-implement-platform-org-system-533cfs
                 <tr><td colspan="10" class="text-center py-5 text-muted">No requests found.</td></tr>
+=======
+                <tr>
+                    <td colspan="9" class="text-center py-5 text-muted">
+                        <i class="bi bi-ticket-perforated fs-2 d-block mb-2"></i>
+                        No requests found.
+                    </td>
+                </tr>
+>>>>>>> master
                 {% endfor %}
             </tbody>
         </table>

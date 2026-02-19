@@ -43,6 +43,7 @@ class WorkflowTransition(models.Model):
 
     class Meta:
         unique_together = [("workflow", "from_state", "to_state")]
+<<<<<<< codex/design-and-implement-platform-org-system-533cfs
 
 
 class WorkflowStateAction(models.Model):
@@ -60,3 +61,5 @@ class WorkflowStateAction(models.Model):
 
     class Meta:
         unique_together = [("workflow", "state", "name")]
+=======
+>>>>>>> master
