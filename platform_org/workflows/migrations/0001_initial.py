@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("tenancy", "0002_tenant_slug_alter_tenantuser_role"),
+        ("tenancy", "0001_initial"),
     ]
 
     operations = [
