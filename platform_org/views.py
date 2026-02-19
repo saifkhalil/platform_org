@@ -3,19 +3,55 @@ from django.utils.decorators import method_decorator
 from django.urls import reverse_lazy
 from django.db.models import Q
 from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DeleteView, DetailView
+from django.shortcuts import redirect
 
-from .tenancy.models import Tenant
+from .tenancy.models import Tenant, TenantUser
 from django.http import JsonResponse
+from django.core.exceptions import PermissionDenied
 from .core.models import (
     MicroEnterprise, MEContract, VAMAgreement, MEKPI, 
     MicroEnterpriseType, MicroEnterpriseStatus, MEService, 
     ContractService, MEOwner
 )
 from .sla.models import ServiceRequest, SLABreachEvent
+from .workflows.models import WorkflowDefinition, WorkflowState, WorkflowTransition, WorkflowStateAction
+from .workflows.services import get_active_workflow, get_initial_state_code, get_state_choices, can_transition, execute_state_actions, build_mermaid
 
+
+
+
+def get_user_consumer_me(user, tenant):
+    if not user or not user.is_authenticated or not tenant:
+        return None
+    primary = MEOwner.objects.filter(tenant=tenant, user=user, is_primary=True).select_related("me").first()
+    if primary:
+        return primary.me
+    link = MEOwner.objects.filter(tenant=tenant, user=user).select_related("me").first()
+    return link.me if link else None
+
+
+def has_write_access(user, tenant):
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser or user.is_staff or user.groups.filter(name="Platform Admin").exists():
+        return True
+    if not tenant:
+        return False
+    return TenantUser.objects.filter(
+        user=user,
+        tenant=tenant,
+        is_active=True,
+        role__in=[
+            TenantUser.Role.PLATFORM_ADMIN,
+            TenantUser.Role.ME_LEAD,
+            TenantUser.Role.FINANCE,
+        ],
+    ).exists()
 
 class TenantScopedMixin:
-    """Scopes queryset to request.tenant when available."""
+    """Scopes queryset to request.tenant when available and enforces write permissions."""
+
+    paginate_by = 20
 
     def get_tenant(self):
         return getattr(self.request, "tenant", None)
@@ -25,6 +61,11 @@ class TenantScopedMixin:
         if tenant:
             return qs.filter(tenant=tenant)
         return qs
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and not has_write_access(request.user, self.get_tenant()):
+            raise PermissionDenied("You do not have permission to modify tenant data.")
+        return super().dispatch(request, *args, **kwargs)
 
 
 class TenantAssignMixin:
@@ -341,6 +382,13 @@ class ContractListView(TenantScopedMixin, ListView):
     context_object_name = "items"
     template_name = "platform_org/contract_list.html"
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["workflow_states"] = get_state_choices(self.get_tenant(), "CONTRACT") or [("DRAFT", "Draft"), ("ACTIVE", "Active"), ("SUSPENDED", "Suspended"), ("CLOSED", "Closed")]
+        wf = get_active_workflow(self.get_tenant(), "CONTRACT")
+        context["contract_workflow_name"] = wf.name if wf else "Default"
+        return context
+
     def get_queryset(self):
         qs = self.scope_queryset(
             super()
@@ -365,7 +413,7 @@ class ContractListView(TenantScopedMixin, ListView):
 @method_decorator(login_required, name="dispatch")
 class ContractCreateView(TenantScopedMixin, TenantAssignMixin, CreateView):
     model = MEContract
-    fields = ["code", "provider_me", "consumer_me", "start_date", "end_date", "status", "sla_template"]
+    fields = ["code", "provider_me", "start_date", "end_date", "sla_template"]
     template_name = "platform_org/contract_form.html"
     success_url = reverse_lazy("platform_org:contract_list")
 
@@ -375,24 +423,7 @@ class ContractCreateView(TenantScopedMixin, TenantAssignMixin, CreateView):
         if tenant:
             form.fields["provider_me"].queryset = MicroEnterprise.objects.filter(tenant=tenant).order_by("name")
             
-            # Consumer ME is restricted to the user's MEs
-            user_mes = MicroEnterprise.objects.filter(tenant=tenant, owner_links__user=self.request.user)
-            form.fields["consumer_me"].queryset = user_mes.order_by("name")
             
-            # Default to the primary ME if available
-            primary_owner = MEOwner.objects.filter(tenant=tenant, user=self.request.user, is_primary=True).first()
-            if primary_owner:
-                form.initial["consumer_me"] = primary_owner.me_id
-            elif user_mes.exists():
-                form.initial["consumer_me"] = user_mes.first().id
-            
-            # Make consumer_me readonly/disabled as requested
-            form.fields["consumer_me"].disabled = True
-            
-            # Contract Status
-            from .core.models import ContractStatus
-            form.fields["status"].queryset = ContractStatus.objects.filter(tenant=tenant).order_by("name")
-
             # sla_template is handled per-service in the contract_form.html table,
             # but we keep the field filtering if it exists in the form
             if "sla_template" in form.fields:
@@ -435,6 +466,12 @@ class ContractCreateView(TenantScopedMixin, TenantAssignMixin, CreateView):
         return super().post(request, *args, **kwargs)
 
     def form_valid(self, form):
+        tenant = self.get_tenant()
+        if tenant:
+            form.instance.status = get_initial_state_code(tenant, "CONTRACT", "DRAFT")
+            consumer_me = get_user_consumer_me(self.request.user, tenant)
+            if consumer_me:
+                form.instance.consumer_me = consumer_me
         # We need to call form_valid on CreateView which saves the object
         # But we also need to handle the case where it might fail or we need to add messages
         try:
@@ -511,7 +548,7 @@ class ContractCreateView(TenantScopedMixin, TenantAssignMixin, CreateView):
 @method_decorator(login_required, name="dispatch")
 class ContractUpdateView(TenantScopedMixin, UpdateView):
     model = MEContract
-    fields = ["code", "provider_me", "consumer_me", "start_date", "end_date", "status", "sla_template"]
+    fields = ["code", "provider_me", "start_date", "end_date", "sla_template"]
     template_name = "platform_org/contract_form.html"
     success_url = reverse_lazy("platform_org:contract_list")
 
@@ -521,23 +558,6 @@ class ContractUpdateView(TenantScopedMixin, UpdateView):
         if tenant:
             form.fields["provider_me"].queryset = MicroEnterprise.objects.filter(tenant=tenant).order_by("name")
             
-            # Consumer ME is restricted to the user's MEs
-            user_mes = MicroEnterprise.objects.filter(tenant=tenant, owner_links__user=self.request.user)
-            form.fields["consumer_me"].queryset = user_mes.order_by("name")
-            
-            # Default to the primary ME if available
-            primary_owner = MEOwner.objects.filter(tenant=tenant, user=self.request.user, is_primary=True).first()
-            if primary_owner:
-                form.initial["consumer_me"] = primary_owner.me_id
-            elif user_mes.exists():
-                form.initial["consumer_me"] = user_mes.first().id
-            
-            # Make consumer_me readonly/disabled as requested
-            form.fields["consumer_me"].disabled = True
-
-            # Contract Status
-            from .core.models import ContractStatus
-            form.fields["status"].queryset = ContractStatus.objects.filter(tenant=tenant).order_by("name")
 
             # sla_template is handled per-service in the contract_form.html table,
             # but we keep the field filtering if it exists in the form
@@ -558,6 +578,12 @@ class ContractUpdateView(TenantScopedMixin, UpdateView):
         return ctx
 
     def form_valid(self, form):
+        tenant = self.get_tenant()
+        if tenant and not form.instance.status:
+            form.instance.status = get_initial_state_code(tenant, "CONTRACT", "DRAFT")
+        consumer_me = get_user_consumer_me(self.request.user, tenant)
+        if consumer_me:
+            form.instance.consumer_me = consumer_me
         try:
             response = super().form_valid(form)
             selected_services = self.request.POST.getlist("selected_services")
@@ -627,6 +653,22 @@ class ContractUpdateView(TenantScopedMixin, UpdateView):
             from django.contrib import messages
             messages.error(self.request, f"Error updating contract: {e}")
             return self.form_invalid(form)
+
+
+@method_decorator(login_required, name="dispatch")
+class ContractDetailView(TenantScopedMixin, DetailView):
+    model = MEContract
+    context_object_name = "contract"
+    template_name = "platform_org/contract_detail.html"
+
+    def get_queryset(self):
+        return self.scope_queryset(super().get_queryset().select_related("provider_me", "consumer_me"))
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        workflow = get_active_workflow(self.get_tenant(), "CONTRACT")
+        context["workflow"] = workflow
+        return context
 
 
 @method_decorator(login_required, name="dispatch")
@@ -768,6 +810,13 @@ class ServiceRequestListView(TenantScopedMixin, ListView):
     context_object_name = "items"
     template_name = "platform_org/service_request_list.html"
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["workflow_states"] = get_state_choices(self.get_tenant(), "REQUEST") or [("OPEN", "Open"), ("IN_PROGRESS", "In Progress"), ("RESOLVED", "Resolved"), ("CLOSED", "Closed")]
+        wf = get_active_workflow(self.get_tenant(), "REQUEST")
+        context["request_workflow_name"] = wf.name if wf else "Default"
+        return context
+
     def get_queryset(self):
         qs = self.scope_queryset(super().get_queryset().select_related("tenant", "contract"))
         q = self.request.GET.get("q")
@@ -800,6 +849,12 @@ class ServiceRequestCreateView(TenantScopedMixin, TenantAssignMixin, CreateView)
         tenant = self.get_tenant()
         if tenant:
             form.fields["contract"].queryset = MEContract.objects.filter(tenant=tenant).order_by("-start_date")
+            form.fields["status"].widget.choices = get_state_choices(tenant, "REQUEST") or [
+                ("OPEN", "Open"),
+                ("IN_PROGRESS", "In Progress"),
+                ("RESOLVED", "Resolved"),
+                ("CLOSED", "Closed"),
+            ]
         return form
 
 
@@ -818,7 +873,29 @@ class ServiceRequestUpdateView(TenantScopedMixin, UpdateView):
         tenant = self.get_tenant()
         if tenant:
             form.fields["contract"].queryset = MEContract.objects.filter(tenant=tenant).order_by("-start_date")
+            form.fields["status"].widget.choices = get_state_choices(tenant, "REQUEST") or [
+                ("OPEN", "Open"),
+                ("IN_PROGRESS", "In Progress"),
+                ("RESOLVED", "Resolved"),
+                ("CLOSED", "Closed"),
+            ]
         return form
+
+
+@method_decorator(login_required, name="dispatch")
+class ServiceRequestDetailView(TenantScopedMixin, DetailView):
+    model = ServiceRequest
+    context_object_name = "request_item"
+    template_name = "platform_org/service_request_detail.html"
+
+    def get_queryset(self):
+        return self.scope_queryset(super().get_queryset().select_related("contract"))
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        workflow = get_active_workflow(self.get_tenant(), "REQUEST")
+        context["workflow"] = workflow
+        return context
 
 
 @method_decorator(login_required, name="dispatch")
@@ -846,3 +923,138 @@ class SLABreachesView(TenantScopedMixin, ListView):
         if q:
             qs = qs.filter(Q(request__title__icontains=q) | Q(request__external_id__icontains=q))
         return qs.order_by("-breach_at")
+
+
+@method_decorator(login_required, name="dispatch")
+class WorkflowDefinitionListView(TenantScopedMixin, ListView):
+    model = WorkflowDefinition
+    context_object_name = "items"
+    template_name = "platform_org/workflow_definition_list.html"
+
+    def get_queryset(self):
+        return self.scope_queryset(super().get_queryset()).order_by("entity_type", "name")
+
+
+@method_decorator(login_required, name="dispatch")
+class WorkflowDefinitionCreateView(TenantScopedMixin, TenantAssignMixin, CreateView):
+    model = WorkflowDefinition
+    fields = ["name", "entity_type", "is_active"]
+    template_name = "platform_org/form.html"
+    success_url = reverse_lazy("platform_org:workflow_definition_list")
+
+
+@method_decorator(login_required, name="dispatch")
+class WorkflowDefinitionUpdateView(TenantScopedMixin, UpdateView):
+    model = WorkflowDefinition
+    fields = ["name", "entity_type", "is_active"]
+    template_name = "platform_org/form.html"
+    success_url = reverse_lazy("platform_org:workflow_definition_list")
+
+
+@method_decorator(login_required, name="dispatch")
+class WorkflowDefinitionDeleteView(TenantScopedMixin, DeleteView):
+    model = WorkflowDefinition
+    template_name = "platform_org/confirm_delete.html"
+    success_url = reverse_lazy("platform_org:workflow_definition_list")
+
+
+@method_decorator(login_required, name="dispatch")
+class WorkflowStateCreateView(TenantScopedMixin, TenantAssignMixin, CreateView):
+    model = WorkflowState
+    fields = ["workflow", "code", "name", "order", "is_initial", "is_terminal"]
+    template_name = "platform_org/form.html"
+    success_url = reverse_lazy("platform_org:workflow_definition_list")
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        tenant = self.get_tenant()
+        if tenant:
+            form.fields["workflow"].queryset = WorkflowDefinition.objects.filter(tenant=tenant)
+        return form
+
+
+@method_decorator(login_required, name="dispatch")
+class WorkflowTransitionCreateView(TenantScopedMixin, TenantAssignMixin, CreateView):
+    model = WorkflowTransition
+    fields = ["workflow", "from_state", "to_state", "name"]
+    template_name = "platform_org/form.html"
+    success_url = reverse_lazy("platform_org:workflow_definition_list")
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        tenant = self.get_tenant()
+        if tenant:
+            workflows = WorkflowDefinition.objects.filter(tenant=tenant)
+            states = WorkflowState.objects.filter(tenant=tenant)
+            form.fields["workflow"].queryset = workflows
+            form.fields["from_state"].queryset = states
+            form.fields["to_state"].queryset = states
+        return form
+
+
+
+
+@method_decorator(login_required, name="dispatch")
+class WorkflowDefinitionDetailView(TenantScopedMixin, DetailView):
+    model = WorkflowDefinition
+    context_object_name = "workflow"
+    template_name = "platform_org/workflow_definition_detail.html"
+
+    def get_queryset(self):
+        return self.scope_queryset(super().get_queryset())
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        workflow = self.object
+        context["states"] = workflow.states.all()
+        context["transitions"] = workflow.transitions.select_related("from_state", "to_state")
+        context["actions"] = workflow.actions.select_related("state")
+        context["mermaid"] = build_mermaid(workflow)
+        return context
+
+
+@method_decorator(login_required, name="dispatch")
+class WorkflowStateActionCreateView(TenantScopedMixin, TenantAssignMixin, CreateView):
+    model = WorkflowStateAction
+    fields = ["workflow", "state", "name", "action_type", "config", "is_active"]
+    template_name = "platform_org/form.html"
+    success_url = reverse_lazy("platform_org:workflow_definition_list")
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        tenant = self.get_tenant()
+        if tenant:
+            form.fields["workflow"].queryset = WorkflowDefinition.objects.filter(tenant=tenant)
+            form.fields["state"].queryset = WorkflowState.objects.filter(tenant=tenant)
+        return form
+
+@login_required
+def contract_transition(request, pk):
+    if request.method != "POST":
+        return redirect("platform_org:contract_list")
+    tenant = request.tenant
+    contract = MEContract.objects.filter(tenant=tenant, pk=pk).first()
+    if not contract:
+        return redirect("platform_org:contract_list")
+    target_state = request.POST.get("target_state", "").strip()
+    if target_state and can_transition(tenant, "CONTRACT", contract.status, target_state):
+        contract.status = target_state
+        contract.save(update_fields=["status", "updated_at"])
+        execute_state_actions(contract, tenant, "CONTRACT", target_state)
+    return redirect("platform_org:contract_list")
+
+
+@login_required
+def request_transition(request, pk):
+    if request.method != "POST":
+        return redirect("platform_org:service_request_list")
+    tenant = request.tenant
+    req = ServiceRequest.objects.filter(tenant=tenant, pk=pk).first()
+    if not req:
+        return redirect("platform_org:service_request_list")
+    target_state = request.POST.get("target_state", "").strip()
+    if target_state and can_transition(tenant, "REQUEST", req.status, target_state):
+        req.status = target_state
+        req.save(update_fields=["status"])
+        execute_state_actions(req, tenant, "REQUEST", target_state)
+    return redirect("platform_org:service_request_list")

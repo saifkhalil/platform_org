@@ -6,11 +6,14 @@ from .views import (
     MicroEnterpriseListView, MicroEnterpriseCreateView, MicroEnterpriseUpdateView, MicroEnterpriseDeleteView, MicroEnterpriseDetailView,
     MEServiceListView, MEServiceCreateView, MEServiceUpdateView, MEServiceDeleteView, MEServiceDetailView,
     service_sla_cost_manage, service_sla_cost_delete,
-    ContractListView, ContractCreateView, ContractUpdateView, ContractDeleteView,
+    ContractListView, ContractCreateView, ContractDetailView, ContractUpdateView, ContractDeleteView,
     VAMAgreementListView, VAMAgreementCreateView, VAMAgreementUpdateView, VAMAgreementDeleteView,
     KPIListView, KPICreateView, KPIUpdateView, KPIDeleteView,
-    ServiceRequestListView, ServiceRequestCreateView, ServiceRequestUpdateView, ServiceRequestDeleteView,
+    ServiceRequestListView, ServiceRequestCreateView, ServiceRequestDetailView, ServiceRequestUpdateView, ServiceRequestDeleteView,
     SLABreachesView,
+    WorkflowDefinitionListView, WorkflowDefinitionCreateView, WorkflowDefinitionUpdateView, WorkflowDefinitionDeleteView, WorkflowDefinitionDetailView,
+    WorkflowStateCreateView, WorkflowTransitionCreateView, WorkflowStateActionCreateView,
+    contract_transition, request_transition,
 )
 
 app_name = "platform_org"
@@ -34,6 +37,7 @@ urlpatterns = [
 
     path("contracts/", ContractListView.as_view(), name="contract_list"),
     path("contracts/new/", ContractCreateView.as_view(), name="contract_create"),
+    path("contracts/<int:pk>/", ContractDetailView.as_view(), name="contract_detail"),
     path("contracts/<int:pk>/edit/", ContractUpdateView.as_view(), name="contract_edit"),
     path("contracts/<int:pk>/delete/", ContractDeleteView.as_view(), name="contract_delete"),
 
@@ -49,8 +53,21 @@ urlpatterns = [
 
     path("requests/", ServiceRequestListView.as_view(), name="service_request_list"),
     path("requests/new/", ServiceRequestCreateView.as_view(), name="service_request_create"),
+    path("requests/<int:pk>/", ServiceRequestDetailView.as_view(), name="service_request_detail"),
     path("requests/<int:pk>/edit/", ServiceRequestUpdateView.as_view(), name="service_request_edit"),
     path("requests/<int:pk>/delete/", ServiceRequestDeleteView.as_view(), name="service_request_delete"),
 
     path("sla/breaches/", SLABreachesView.as_view(), name="sla_breaches"),
+
+    path("workflow/", WorkflowDefinitionListView.as_view(), name="workflow_definition_list"),
+    path("workflow/new/", WorkflowDefinitionCreateView.as_view(), name="workflow_definition_create"),
+    path("workflow/<int:pk>/", WorkflowDefinitionDetailView.as_view(), name="workflow_definition_detail"),
+    path("workflow/<int:pk>/edit/", WorkflowDefinitionUpdateView.as_view(), name="workflow_definition_edit"),
+    path("workflow/<int:pk>/delete/", WorkflowDefinitionDeleteView.as_view(), name="workflow_definition_delete"),
+    path("workflow/states/new/", WorkflowStateCreateView.as_view(), name="workflow_state_create"),
+    path("workflow/transitions/new/", WorkflowTransitionCreateView.as_view(), name="workflow_transition_create"),
+    path("workflow/actions/new/", WorkflowStateActionCreateView.as_view(), name="workflow_action_create"),
+
+    path("contracts/<int:pk>/transition/", contract_transition, name="contract_transition"),
+    path("requests/<int:pk>/transition/", request_transition, name="request_transition"),
 ]

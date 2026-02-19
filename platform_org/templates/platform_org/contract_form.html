@@ -23,17 +23,7 @@
                                 <div class="invalid-feedback d-block">{{ form.code.errors }}</div>
                             {% endif %}
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold">Status</label>
-                            <select name="status" class="form-select {% if form.status.errors %}is-invalid{% endif %}" id="id_status">
-                                {% for choice in form.fields.status.queryset %}
-                                    <option value="{{ choice.pk }}" {% if form.status.value == choice.pk %}selected{% endif %}>{{ choice.name }}</option>
-                                {% endfor %}
-                            </select>
-                            {% if form.status.errors %}
-                                <div class="invalid-feedback d-block">{{ form.status.errors }}</div>
-                            {% endif %}
-                        </div>
+                        
                     </div>
 
                     <div class="row">
@@ -50,14 +40,8 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-semibold">Consumer ME</label>
-                            <select name="consumer_me" class="form-select {% if form.consumer_me.errors %}is-invalid{% endif %}" id="id_consumer_me">
-                                {% for choice in form.fields.consumer_me.queryset %}
-                                    <option value="{{ choice.pk }}" {% if form.consumer_me.value == choice.pk %}selected{% endif %}>{{ choice.name }}</option>
-                                {% endfor %}
-                            </select>
-                            {% if form.consumer_me.errors %}
-                                <div class="invalid-feedback d-block">{{ form.consumer_me.errors }}</div>
-                            {% endif %}
+                            <input type="text" class="form-control" value="Auto-selected from logged-in ME owner profile" readonly>
+                            <div class="form-text">Consumer ME is assigned from your ME owner mapping.</div>
                         </div>
                     </div>
 

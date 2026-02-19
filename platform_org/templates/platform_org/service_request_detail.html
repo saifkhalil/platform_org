@@ -1,0 +1,17 @@
+{% extends "platform_org/base.html" %}
+{% block title %}Request Detail{% endblock %}
+{% block content %}
+<div class="pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h3">Request {{ request_item.external_id|default:request_item.id }}</h1>
+</div>
+<div class="card">
+  <div class="card-body">
+    <p><strong>Title:</strong> {{ request_item.title }}</p>
+    <p><strong>Workflow:</strong> {{ workflow.name|default:"Default" }}</p>
+    <p><strong>Status:</strong> <span class="badge bg-light text-dark border">{{ request_item.status }}</span></p>
+    <p><strong>Source:</strong> {{ request_item.source }}</p>
+    <p><strong>Priority:</strong> {{ request_item.priority }}</p>
+    <p><strong>Contract:</strong> {{ request_item.contract.code }}</p>
+  </div>
+</div>
+{% endblock %}
