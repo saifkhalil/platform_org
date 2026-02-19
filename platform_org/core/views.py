@@ -12,6 +12,7 @@ from .serializers import (
 from .permissions import RowLevelMEPermission, IsPlatformAdmin, is_platform_admin
 from .audit import log_event
 from platform_org.integrations.tasks import noop_integration_event
+from platform_org.workflows.services import can_transition
 
 def owned_me_ids(user):
     return list(MEOwner.objects.filter(user=user).values_list("me_id", flat=True))
@@ -80,7 +81,10 @@ class MEContractViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def activate(self, request, pk=None):
         contract = self.get_object()
-        contract.status = "ACTIVE"
+        target_state = "ACTIVE"
+        if not can_transition(request.tenant, "CONTRACT", contract.status, target_state):
+            return Response({"detail": f"Transition {contract.status} -> {target_state} is not allowed."}, status=400)
+        contract.status = target_state
         contract.save(update_fields=["status","updated_at"])
         log_event(actor=request.user, action="STATE_CHANGE", entity=contract, summary="Contract activated")
         noop_integration_event.delay("contract_activated", {"code": contract.code})

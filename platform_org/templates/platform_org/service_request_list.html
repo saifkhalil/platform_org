@@ -47,7 +47,7 @@
                     <th>Contract</th>
                     <th>Priority</th>
                     <th>Created At</th>
-                    <th class="text-end">Actions</th>
+                    <th>Workflow</th><th class="text-end">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -74,6 +74,17 @@
                         </span>
                     </td>
                     <td><small>{{ r.opened_at|date:"Y-m-d H:i" }}</small></td>
+                    <td>
+                        <form method="post" action="{% url 'platform_org:request_transition' r.id %}" class="d-flex gap-1">
+                            {% csrf_token %}
+                            <select name="target_state" class="form-select form-select-sm">
+                                {% for code,name in workflow_states %}
+                                <option value="{{ code }}" {% if r.status == code %}selected{% endif %}>{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button class="btn btn-sm btn-outline-secondary" type="submit">Apply</button>
+                        </form>
+                    </td>
                     <td class="text-end">
                         <div class="btn-group btn-group-sm">
                             <a class="btn btn-outline-primary" href="{% url 'platform_org:service_request_edit' r.id %}" title="Edit">
@@ -87,7 +98,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="text-center py-5 text-muted">
+                    <td colspan="9" class="text-center py-5 text-muted">
                         <i class="bi bi-ticket-perforated fs-2 d-block mb-2"></i>
                         No requests found.
                     </td>
