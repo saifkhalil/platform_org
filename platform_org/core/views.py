@@ -86,6 +86,7 @@ class MEContractViewSet(viewsets.ModelViewSet):
             return Response({"detail": f"Transition {contract.status} -> {target_state} is not allowed."}, status=400)
         contract.status = target_state
         contract.save(update_fields=["status","updated_at"])
+        execute_state_actions(contract, request.tenant, "CONTRACT", target_state)
         log_event(actor=request.user, action="STATE_CHANGE", entity=contract, summary="Contract activated")
         noop_integration_event.delay("contract_activated", {"code": contract.code})
         return Response({"status": contract.status})

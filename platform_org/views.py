@@ -401,7 +401,7 @@ class ContractListView(TenantScopedMixin, ListView):
 @method_decorator(login_required, name="dispatch")
 class ContractCreateView(TenantScopedMixin, TenantAssignMixin, CreateView):
     model = MEContract
-    fields = ["code", "provider_me", "consumer_me", "start_date", "end_date", "status", "sla_template"]
+    fields = ["code", "provider_me", "consumer_me", "start_date", "end_date", "sla_template"]
     template_name = "platform_org/contract_form.html"
     success_url = reverse_lazy("platform_org:contract_list")
 
@@ -548,7 +548,7 @@ class ContractCreateView(TenantScopedMixin, TenantAssignMixin, CreateView):
 @method_decorator(login_required, name="dispatch")
 class ContractUpdateView(TenantScopedMixin, UpdateView):
     model = MEContract
-    fields = ["code", "provider_me", "consumer_me", "start_date", "end_date", "status", "sla_template"]
+    fields = ["code", "provider_me", "consumer_me", "start_date", "end_date", "sla_template"]
     template_name = "platform_org/contract_form.html"
     success_url = reverse_lazy("platform_org:contract_list")
 
@@ -593,6 +593,9 @@ class ContractUpdateView(TenantScopedMixin, UpdateView):
         return ctx
 
     def form_valid(self, form):
+        tenant = self.get_tenant()
+        if tenant and not form.instance.status:
+            form.instance.status = get_initial_state_code(tenant, "CONTRACT", "DRAFT")
         try:
             response = super().form_valid(form)
             selected_services = self.request.POST.getlist("selected_services")
