@@ -12,7 +12,7 @@ from .serializers import (
 from .permissions import RowLevelMEPermission, IsPlatformAdmin, is_platform_admin
 from .audit import log_event
 from platform_org.integrations.tasks import noop_integration_event
-from platform_org.workflows.services import can_transition, execute_state_actions
+from platform_org.workflows.services import can_transition
 
 def owned_me_ids(user):
     return list(MEOwner.objects.filter(user=user).values_list("me_id", flat=True))

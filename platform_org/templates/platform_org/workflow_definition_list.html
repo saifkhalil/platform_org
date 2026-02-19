@@ -7,7 +7,6 @@
     <a class="btn btn-sm btn-primary" href="{% url 'platform_org:workflow_definition_create' %}">New Workflow</a>
     <a class="btn btn-sm btn-outline-primary" href="{% url 'platform_org:workflow_state_create' %}">New State</a>
     <a class="btn btn-sm btn-outline-primary" href="{% url 'platform_org:workflow_transition_create' %}">New Transition</a>
-    <a class="btn btn-sm btn-outline-primary" href="{% url 'platform_org:workflow_action_create' %}">New Action</a>
   </div>
 </div>
 
@@ -15,15 +14,23 @@
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0">
       <thead class="table-light">
-        <tr><th>Name</th><th>Entity</th><th>Active</th><th>States</th><th>Transitions</th><th></th></tr>
+        <tr>
+          <th>Name</th><th>Entity</th><th>Active</th><th>States</th><th>Transitions</th><th></th>
+        </tr>
       </thead>
       <tbody>
         {% for w in items %}
-        <tr onclick="window.location='{% url 'platform_org:workflow_definition_detail' w.id %}'" style="cursor:pointer">
+        <tr>
           <td>{{ w.name }}</td>
           <td>{{ w.entity_type }}</td>
           <td>{{ w.is_active|yesno:"Yes,No" }}</td>
-          <td>{{ w.states.count }}</td>
+          <td>
+            {% for st in w.states.all %}
+              <span class="badge bg-light text-dark border">{{ st.code }}</span>
+            {% empty %}
+              <span class="text-muted">No states</span>
+            {% endfor %}
+          </td>
           <td>{{ w.transitions.count }}</td>
           <td class="text-end">
             <a class="btn btn-sm btn-outline-primary" href="{% url 'platform_org:workflow_definition_edit' w.id %}">Edit</a>

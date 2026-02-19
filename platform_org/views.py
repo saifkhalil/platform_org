@@ -14,8 +14,8 @@ from .core.models import (
     ContractService, MEOwner
 )
 from .sla.models import ServiceRequest, SLABreachEvent
-from .workflows.models import WorkflowDefinition, WorkflowState, WorkflowTransition, WorkflowStateAction
-from .workflows.services import get_initial_state_code, get_state_choices, can_transition, execute_state_actions, build_mermaid
+from .workflows.models import WorkflowDefinition, WorkflowState, WorkflowTransition
+from .workflows.services import get_initial_state_code, get_state_choices, can_transition
 
 
 
@@ -425,6 +425,8 @@ class ContractCreateView(TenantScopedMixin, TenantAssignMixin, CreateView):
             # Make consumer_me readonly/disabled as requested
             form.fields["consumer_me"].disabled = True
             
+            form.fields["status"].widget.choices = get_state_choices(tenant, "CONTRACT") or [("DRAFT", "Draft"), ("ACTIVE", "Active"), ("SUSPENDED", "Suspended"), ("CLOSED", "Closed")]
+
             # sla_template is handled per-service in the contract_form.html table,
             # but we keep the field filtering if it exists in the form
             if "sla_template" in form.fields:
@@ -468,7 +470,7 @@ class ContractCreateView(TenantScopedMixin, TenantAssignMixin, CreateView):
 
     def form_valid(self, form):
         tenant = self.get_tenant()
-        if tenant:
+        if tenant and not form.cleaned_data.get("status"):
             form.instance.status = get_initial_state_code(tenant, "CONTRACT", "DRAFT")
         # We need to call form_valid on CreateView which saves the object
         # But we also need to handle the case where it might fail or we need to add messages
@@ -569,6 +571,8 @@ class ContractUpdateView(TenantScopedMixin, UpdateView):
             
             # Make consumer_me readonly/disabled as requested
             form.fields["consumer_me"].disabled = True
+
+            form.fields["status"].widget.choices = get_state_choices(tenant, "CONTRACT") or [("DRAFT", "Draft"), ("ACTIVE", "Active"), ("SUSPENDED", "Suspended"), ("CLOSED", "Closed")]
 
             # sla_template is handled per-service in the contract_form.html table,
             # but we keep the field filtering if it exists in the form
@@ -966,42 +970,6 @@ class WorkflowTransitionCreateView(TenantScopedMixin, TenantAssignMixin, CreateV
         return form
 
 
-
-
-@method_decorator(login_required, name="dispatch")
-class WorkflowDefinitionDetailView(TenantScopedMixin, DetailView):
-    model = WorkflowDefinition
-    context_object_name = "workflow"
-    template_name = "platform_org/workflow_definition_detail.html"
-
-    def get_queryset(self):
-        return self.scope_queryset(super().get_queryset())
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        workflow = self.object
-        context["states"] = workflow.states.all()
-        context["transitions"] = workflow.transitions.select_related("from_state", "to_state")
-        context["actions"] = workflow.actions.select_related("state")
-        context["mermaid"] = build_mermaid(workflow)
-        return context
-
-
-@method_decorator(login_required, name="dispatch")
-class WorkflowStateActionCreateView(TenantScopedMixin, TenantAssignMixin, CreateView):
-    model = WorkflowStateAction
-    fields = ["workflow", "state", "name", "action_type", "config", "is_active"]
-    template_name = "platform_org/form.html"
-    success_url = reverse_lazy("platform_org:workflow_definition_list")
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        tenant = self.get_tenant()
-        if tenant:
-            form.fields["workflow"].queryset = WorkflowDefinition.objects.filter(tenant=tenant)
-            form.fields["state"].queryset = WorkflowState.objects.filter(tenant=tenant)
-        return form
-
 @login_required
 def contract_transition(request, pk):
     if request.method != "POST":
@@ -1014,7 +982,6 @@ def contract_transition(request, pk):
     if target_state and can_transition(tenant, "CONTRACT", contract.status, target_state):
         contract.status = target_state
         contract.save(update_fields=["status", "updated_at"])
-        execute_state_actions(contract, tenant, "CONTRACT", target_state)
     return redirect("platform_org:contract_list")
 
 
@@ -1030,5 +997,4 @@ def request_transition(request, pk):
     if target_state and can_transition(tenant, "REQUEST", req.status, target_state):
         req.status = target_state
         req.save(update_fields=["status"])
-        execute_state_actions(req, tenant, "REQUEST", target_state)
     return redirect("platform_org:service_request_list")

@@ -11,8 +11,8 @@ from .views import (
     KPIListView, KPICreateView, KPIUpdateView, KPIDeleteView,
     ServiceRequestListView, ServiceRequestCreateView, ServiceRequestUpdateView, ServiceRequestDeleteView,
     SLABreachesView,
-    WorkflowDefinitionListView, WorkflowDefinitionCreateView, WorkflowDefinitionUpdateView, WorkflowDefinitionDeleteView, WorkflowDefinitionDetailView,
-    WorkflowStateCreateView, WorkflowTransitionCreateView, WorkflowStateActionCreateView,
+    WorkflowDefinitionListView, WorkflowDefinitionCreateView, WorkflowDefinitionUpdateView, WorkflowDefinitionDeleteView,
+    WorkflowStateCreateView, WorkflowTransitionCreateView,
     contract_transition, request_transition,
 )
 
@@ -59,12 +59,10 @@ urlpatterns = [
 
     path("workflow/", WorkflowDefinitionListView.as_view(), name="workflow_definition_list"),
     path("workflow/new/", WorkflowDefinitionCreateView.as_view(), name="workflow_definition_create"),
-    path("workflow/<int:pk>/", WorkflowDefinitionDetailView.as_view(), name="workflow_definition_detail"),
     path("workflow/<int:pk>/edit/", WorkflowDefinitionUpdateView.as_view(), name="workflow_definition_edit"),
     path("workflow/<int:pk>/delete/", WorkflowDefinitionDeleteView.as_view(), name="workflow_definition_delete"),
     path("workflow/states/new/", WorkflowStateCreateView.as_view(), name="workflow_state_create"),
     path("workflow/transitions/new/", WorkflowTransitionCreateView.as_view(), name="workflow_transition_create"),
-    path("workflow/actions/new/", WorkflowStateActionCreateView.as_view(), name="workflow_action_create"),
 
     path("contracts/<int:pk>/transition/", contract_transition, name="contract_transition"),
     path("requests/<int:pk>/transition/", request_transition, name="request_transition"),
