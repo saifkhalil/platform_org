@@ -43,3 +43,23 @@ class WorkflowTransition(models.Model):
 
     class Meta:
         unique_together = [("workflow", "from_state", "to_state")]
+<<<<<<< codex/design-and-implement-platform-org-system-533cfs
+
+
+class WorkflowStateAction(models.Model):
+    class ActionType(models.TextChoices):
+        SEND_EMAIL = "SEND_EMAIL", "Send Email"
+        UPDATE_FIELD = "UPDATE_FIELD", "Update Model Field"
+
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="workflow_state_actions")
+    workflow = models.ForeignKey(WorkflowDefinition, on_delete=models.CASCADE, related_name="actions")
+    state = models.ForeignKey(WorkflowState, on_delete=models.CASCADE, related_name="actions")
+    name = models.CharField(max_length=120)
+    action_type = models.CharField(max_length=30, choices=ActionType.choices)
+    config = models.JSONField(default=dict, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = [("workflow", "state", "name")]
+=======
+>>>>>>> master

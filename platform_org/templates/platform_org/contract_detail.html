@@ -1,0 +1,16 @@
+{% extends "platform_org/base.html" %}
+{% block title %}Contract Detail{% endblock %}
+{% block content %}
+<div class="pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h3">Contract {{ contract.code }}</h1>
+</div>
+<div class="card">
+  <div class="card-body">
+    <p><strong>Provider:</strong> {{ contract.provider_me.name }}</p>
+    <p><strong>Consumer:</strong> {{ contract.consumer_me.name }}</p>
+    <p><strong>Workflow:</strong> {{ workflow.name|default:"Default" }}</p>
+    <p><strong>Status:</strong> <span class="badge bg-light text-dark border">{{ contract.status }}</span></p>
+    <p><strong>Value:</strong> ${{ contract.contract_value|floatformat:2 }}</p>
+  </div>
+</div>
+{% endblock %}

@@ -29,8 +29,9 @@ class TenantMiddleware(MiddlewareMixin):
             if not tenant and groups:
                 tenant = Tenant.objects.filter(entra_group_id__in=groups, is_active=True).first()
 
-        if not tenant and request.user.is_authenticated:
-            membership = TenantUser.objects.filter(user=request.user, is_active=True, tenant__is_active=True).first()
+        user = getattr(request, "user", None)
+        if not tenant and user is not None and user.is_authenticated:
+            membership = TenantUser.objects.filter(user=user, is_active=True, tenant__is_active=True).first()
             if membership:
                 tenant = membership.tenant
 
