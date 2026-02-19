@@ -1,17 +1,27 @@
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
-from .models import Tenant
+
+from .models import Tenant, TenantUser
+
 
 class TenantMiddleware(MiddlewareMixin):
-    """Resolve tenant in production from Entra claims (tid/groups) and mapping in DB.
-    Dev fallback: X-Tenant header.
-    """
+    """Resolve tenant from subdomain, header, Entra claims, or user mapping."""
 
     def process_request(self, request):
         tenant = None
+        host = request.get_host().split(":")[0]
+        subdomain = host.split(".")[0] if host and "." in host else None
+
+        if subdomain and subdomain not in {"www", "localhost"}:
+            tenant = Tenant.objects.filter(slug=subdomain, is_active=True).first()
+
+        if not tenant:
+            tenant_header = request.headers.get("X-Tenant")
+            if tenant_header:
+                tenant = Tenant.objects.filter(slug=tenant_header, is_active=True).first()
 
         claims = getattr(request, "entra_claims", None)
-        if claims:
+        if not tenant and claims:
             tid = claims.get("tid")
             groups = claims.get("groups") or []
             if tid:
@@ -19,10 +29,13 @@ class TenantMiddleware(MiddlewareMixin):
             if not tenant and groups:
                 tenant = Tenant.objects.filter(entra_group_id__in=groups, is_active=True).first()
 
+        user = getattr(request, "user", None)
+        if not tenant and user is not None and user.is_authenticated:
+            membership = TenantUser.objects.filter(user=user, is_active=True, tenant__is_active=True).first()
+            if membership:
+                tenant = membership.tenant
+
         if not tenant and getattr(settings, "DEBUG", False):
-            code = request.headers.get("X-Tenant") or "default"
-            tenant = Tenant.objects.filter(code=code, is_active=True).first()
-            if not tenant and code == "default":
-                tenant, _ = Tenant.objects.get_or_create(code="default", defaults={"name": "Default Tenant"})
+            tenant, _ = Tenant.objects.get_or_create(slug="default", defaults={"name": "Default Tenant"})
 
         request.tenant = tenant
