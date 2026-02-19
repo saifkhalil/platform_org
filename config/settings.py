@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "platform_org.audit",
     "platform_org.integrations",
     "platform_org.health",
+    "platform_org.workflows",
 ]
 
 MIDDLEWARE = [
@@ -128,3 +129,19 @@ TEAMS_WEBHOOK_URL = os.getenv("TEAMS_WEBHOOK_URL", "")
 # Auth redirects for template UI
 LOGIN_URL = "/admin/login/"
 LOGIN_REDIRECT_URL = "/"
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {"standard": {"format": "%(asctime)s %(levelname)s %(name)s %(message)s"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "standard"}},
+    "root": {"handlers": ["console"], "level": env("LOG_LEVEL", default="INFO")},
+}
+
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@platform-org.local")
+
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in env("CSRF_TRUSTED_ORIGINS", default="").split(",") if o.strip()]
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
